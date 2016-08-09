@@ -1,13 +1,14 @@
 # -*- coding:utf-8 -*-
 # http://tieba.baidu.com/p/4713369340
 
-# rsg 2016-8-5 查看都有列表 并且列出简略内容, 下载对应头像
+# rsg 这个版本用二进制下载, 希望能稳定很多
 
 import cookielib
 import urllib
 import urllib2
 import sys, time, os, re
 from bs4 import BeautifulSoup
+import requests
 
 url_target = 'http://www.dbmeinv.com'
 #urllogin = 'https://www.douban.com/accounts/login'
@@ -18,10 +19,12 @@ headers = {'User-Agent': 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)',
 #url_target = raw_input('请输入贴吧地址:').strip()
 print '正在开启下载...'
 
-html = urllib2.urlopen(url_target)
+#html = urllib2.urlopen(url_target)
 #print html.read()
 
-soup = BeautifulSoup(html.read(),"html.parser")
+html = requests.get(url_target, headers=headers).content
+
+soup = BeautifulSoup(html,"html.parser")
 
 
 #item = soup.find('div', class_ = "sender")
@@ -67,8 +70,15 @@ while(1):
         #print repr(name)
 
         imgurl = i.get('src')
+        image = urllib.urlopen(imgurl).read()
+
+        pathname = './%s/%s_%s.jpg' % (title, count, name)
+
         try:
-            urllib.urlretrieve(imgurl, './%s/%s_%s.jpg' % (title, count, name))
+            with open(pathname, "wb") as pic:
+                pic.write(image)
+                pic.close()
+            #urllib.urlretrieve(imgurl, './%s/%s_%s.jpg' % (title, count, name))
         except IOError:
             imgfailed.append(imgurl)
             print '图片下载失败, 跳过...'
@@ -91,15 +101,18 @@ while(1):
     print ('准备下载第%s页....\n\n\n', yeshu)
 
     # 读取新的页面
-    html = urllib2.urlopen(url_target)
-    soup = BeautifulSoup(html.read(), "html.parser")
+    html = requests.get(url_target, headers=headers).content
+    soup = BeautifulSoup(html, "html.parser")
 
+if(str(len(imgfailed)) > 0):
+    print '共下载图片 ' + str(count) + ' 张, 其中失败 ' + str(len(imgfailed))+ ' 张, 如下:'
+    print '---------------------------\n'
+    for m in imgfailed:
+        print m
+        print '\n'
 
-print '共下载图片 ' + count + ' 张, 其中失败 ' + str(len(imgfailed))+ ' 张, 如下:'
-print '---------------------------\n'
-for m in imgfailed:
-    print m
-    print '\n'
+    print '---------------------------\n'
+    print '请手动下载'
 
-print '---------------------------\n'
-print '请手动下载'
+else:
+    print '共下载图片 ' + str(count) + ' 张, 全部下载成功'
